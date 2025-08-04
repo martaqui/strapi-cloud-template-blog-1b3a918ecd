@@ -1,7 +1,5 @@
 "use strict";
 
-const { ValidationError } = require("@strapi/utils").errors;
-
 module.exports = (plugin) => {
   const sanitizeOutput = (user) => {
     const {
@@ -44,7 +42,7 @@ module.exports = (plugin) => {
     const settings = await pluginStore.get({ key: "advanced" });
 
     if (!settings.allow_register) {
-      throw new ApplicationError("Register action is currently disabled");
+      return ctx.badRequest("Register action is currently disabled");
     }
 
     const params = {
@@ -52,38 +50,47 @@ module.exports = (plugin) => {
       provider: "local",
     };
 
-    const user = await strapi.service("plugin::users-permissions.user").add({
-      ...params,
-      role: settings.default_role,
-      email: params.email.toLowerCase(),
-      username: params.username,
-      confirmed: true,
-    });
-
-    const sanitizedUser = sanitizeUser(user);
-
-    if (settings.email_confirmation) {
-      try {
-        await strapi
-          .plugin("users-permissions")
-          .service("user")
-          .sendConfirmationEmail(sanitizedUser);
-      } catch (err) {
-        throw new ApplicationError(err.message);
-      }
-
-      return ctx.send({ user: sanitizedUser });
+    // Generar username si no se proporciona
+    if (!params.username) {
+      params.username = params.email.split("@")[0];
     }
 
-    const jwt = strapi
-      .plugin("users-permissions")
-      .service("jwt")
-      .issue(pick(user, ["id"]));
+    try {
+      const user = await strapi.service("plugin::users-permissions.user").add({
+        ...params,
+        role: settings.default_role,
+        email: params.email.toLowerCase(),
+        username: params.username,
+        confirmed: true,
+      });
 
-    return ctx.send({
-      jwt,
-      user: sanitizedUser,
-    });
+      const sanitizedUser = sanitizeUser(user);
+
+      if (settings.email_confirmation) {
+        try {
+          await strapi
+            .plugin("users-permissions")
+            .service("user")
+            .sendConfirmationEmail(sanitizedUser);
+        } catch (err) {
+          return ctx.badRequest(err.message);
+        }
+
+        return ctx.send({ user: sanitizedUser });
+      }
+
+      const jwt = strapi
+        .plugin("users-permissions")
+        .service("jwt")
+        .issue({ id: user.id });
+
+      return ctx.send({
+        jwt,
+        user: sanitizedUser,
+      });
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
   };
 
   return plugin;
