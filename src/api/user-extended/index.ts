@@ -1,4 +1,4 @@
 export default {
-  register({ strapi }) {},
-  bootstrap({ strapi }) {},
+  routes: require("./routes/user-extended"),
+  controllers: require("./controllers/user-extended"),
 };
