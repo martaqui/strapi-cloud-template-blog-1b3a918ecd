@@ -39,9 +39,26 @@ module.exports = (plugin) => {
         // Preparar datos para actualización
         const updateData = { ...otherFields };
 
-        // Si hay datosFacturacion, agregarlo al updateData
+        // Si hay datosFacturacion, manejarlo correctamente
         if (datosFacturacion) {
-          updateData.datosFacturacion = datosFacturacion;
+          // Obtener usuario actual para ver si ya tiene datosFacturacion
+          const currentUser = await strapi.entityService.findOne(
+            "plugin::users-permissions.user",
+            userId,
+            { populate: ["datosFacturacion"] }
+          );
+
+          // Si ya existe datosFacturacion, incluir su ID para actualización
+          const existingData = currentUser?.datosFacturacion;
+          if (existingData?.id) {
+            updateData.datosFacturacion = {
+              id: existingData.id,
+              ...datosFacturacion,
+            };
+          } else {
+            // Si no existe, crear nuevo
+            updateData.datosFacturacion = datosFacturacion;
+          }
         }
 
         // Actualizar usuario
