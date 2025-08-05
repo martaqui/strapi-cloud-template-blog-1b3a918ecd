@@ -1,4 +1,7 @@
+import routes from "./routes/user-extended.js";
+import controllers from "./controllers/user-extended.js";
+
 export default {
-  routes: require("./routes/user-extended"),
-  controllers: require("./controllers/user-extended"),
+  routes,
+  controllers,
 };
