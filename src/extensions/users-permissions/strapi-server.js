@@ -15,6 +15,45 @@ module.exports = (plugin) => {
     if (!ctx.state.user) {
       return ctx.unauthorized();
     }
+
+    // Si es PUT, actualizar datos
+    if (ctx.request.method === "PUT") {
+      try {
+        // Para componentes, necesitamos usar un enfoque específico
+        const updateData = { ...ctx.request.body };
+
+        // Si estamos actualizando datosFacturacion, necesitamos el ID del componente existente
+        if (updateData.datosFacturacion) {
+          const currentUser = await strapi.entityService.findOne(
+            "plugin::users-permissions.user",
+            ctx.state.user.id,
+            { populate: ["datosFacturacion"] }
+          );
+
+          // Si ya existe un componente datosFacturacion, incluir su ID
+          if (currentUser.datosFacturacion) {
+            updateData.datosFacturacion.id = currentUser.datosFacturacion.id;
+          }
+        }
+
+        const updatedUser = await strapi.entityService.update(
+          "plugin::users-permissions.user",
+          ctx.state.user.id,
+          {
+            data: updateData,
+            populate: ["datosFacturacion"],
+          }
+        );
+
+        ctx.body = sanitizeOutput(updatedUser);
+        return;
+      } catch (err) {
+        strapi.log.error("Error updating user:", err);
+        return ctx.badRequest(err.message);
+      }
+    }
+
+    // Si es GET, obtener datos (comportamiento original)
     const user = await strapi.entityService.findOne(
       "plugin::users-permissions.user",
       ctx.state.user.id,
@@ -24,33 +63,11 @@ module.exports = (plugin) => {
     ctx.body = sanitizeOutput(user);
   };
 
-  // Agregar método para actualizar datos de facturación
-  plugin.controllers.user.updateProfile = async (ctx) => {
-    if (!ctx.state.user) {
-      return ctx.unauthorized();
-    }
-
-    try {
-      const updatedUser = await strapi.entityService.update(
-        "plugin::users-permissions.user",
-        ctx.state.user.id,
-        {
-          data: ctx.request.body,
-          populate: ["datosFacturacion"],
-        }
-      );
-
-      ctx.body = sanitizeOutput(updatedUser);
-    } catch (err) {
-      return ctx.badRequest(err.message);
-    }
-  };
-
-  // Agregar ruta personalizada
+  // Agregar ruta PUT para /users/me
   plugin.routes["content-api"].routes.push({
     method: "PUT",
-    path: "/user/profile",
-    handler: "user.updateProfile",
+    path: "/users/me",
+    handler: "user.me",
   });
 
   // Guardar el método register original
