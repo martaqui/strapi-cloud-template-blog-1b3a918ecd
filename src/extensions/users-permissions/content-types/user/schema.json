@@ -82,10 +82,37 @@
       "type": "string",
       "required": true
     },
-    "datosFacturacion": {
-      "type": "component",
-      "component": "common.datos-facturacion",
-      "repeatable": false
+    "nombreEmpresa": {
+      "type": "string",
+      "required": true
+    },
+    "cif": {
+      "type": "string",
+      "required": true
+    },
+    "direccionEmpresa": {
+      "type": "string",
+      "required": true
+    },
+    "cpEmpresa": {
+      "type": "string",
+      "required": true
+    },
+    "localidadEmpresa": {
+      "type": "string",
+      "required": true
+    },
+    "provinciaEmpresa": {
+      "type": "string",
+      "required": true
+    },
+    "emailEmpresa": {
+      "type": "email",
+      "required": true
+    },
+    "telefonoEmpresa": {
+      "type": "string",
+      "required": true
     }
   }
 }
