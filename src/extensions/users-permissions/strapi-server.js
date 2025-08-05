@@ -12,56 +12,32 @@ module.exports = (plugin) => {
     return sanitizedUser;
   };
 
-  // 📖📝 LECTURA Y ESCRITURA: Modificar user.me para manejar GET y PUT
+  // 📖📝 EXTENDER user.me para GET y PUT
+  const originalMe = plugin.controllers.user.me;
+
   plugin.controllers.user.me = async (ctx) => {
     if (!ctx.state.user) {
       return ctx.unauthorized();
     }
 
-    const userId = ctx.state.user.id;
-
-    // 📖 GET: Devolver datos del usuario con datosFacturacion
+    // 📖 GET: Usar lógica original con populate
     if (ctx.method === "GET") {
       const user = await strapi.entityService.findOne(
         "plugin::users-permissions.user",
-        userId,
+        ctx.state.user.id,
         { populate: ["datosFacturacion"] }
       );
       ctx.body = sanitizeOutput(user);
       return;
     }
 
-    // 📝 PUT: Actualizar datos del usuario y datosFacturacion
+    // 📝 PUT: Lógica simple para actualización
     if (ctx.method === "PUT") {
       try {
-        const { datosFacturacion, ...otherFields } = ctx.request.body;
+        const userId = ctx.state.user.id;
+        const updateData = ctx.request.body;
 
-        // Preparar datos para actualización
-        const updateData = { ...otherFields };
-
-        // Si hay datosFacturacion, manejarlo correctamente
-        if (datosFacturacion) {
-          // Obtener usuario actual para ver si ya tiene datosFacturacion
-          const currentUser = await strapi.entityService.findOne(
-            "plugin::users-permissions.user",
-            userId,
-            { populate: ["datosFacturacion"] }
-          );
-
-          // Si ya existe datosFacturacion, incluir su ID para actualización
-          const existingData = currentUser?.datosFacturacion;
-          if (existingData?.id) {
-            updateData.datosFacturacion = {
-              id: existingData.id,
-              ...datosFacturacion,
-            };
-          } else {
-            // Si no existe, crear nuevo
-            updateData.datosFacturacion = datosFacturacion;
-          }
-        }
-
-        // Actualizar usuario
+        // Actualización directa sin lógica compleja
         const updatedUser = await strapi.entityService.update(
           "plugin::users-permissions.user",
           userId,
@@ -74,25 +50,22 @@ module.exports = (plugin) => {
         ctx.body = sanitizeOutput(updatedUser);
         return;
       } catch (error) {
-        strapi.log.error("Error updating user profile:", error);
-        return ctx.badRequest("Error updating user profile");
+        strapi.log.error("Error updating user:", error.message);
+        return ctx.badRequest(`Update failed: ${error.message}`);
       }
     }
 
-    // Método no permitido
-    return ctx.methodNotAllowed();
+    // Otros métodos: usar comportamiento original
+    return originalMe(ctx);
   };
 
-  // 🆔 AUTO-GENERACIÓN USERNAME: Solo modificar register para username automático
+  // 🆔 AUTO-GENERACIÓN USERNAME
   const originalRegister = plugin.controllers.auth.register;
 
   plugin.controllers.auth.register = async (ctx) => {
-    // Si no hay username, generarlo del email
     if (!ctx.request.body.username) {
       ctx.request.body.username = ctx.request.body.email.split("@")[0];
     }
-
-    // Llamar al método original sin modificaciones adicionales
     return await originalRegister(ctx);
   };
 
