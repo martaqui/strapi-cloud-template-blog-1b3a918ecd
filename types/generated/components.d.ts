@@ -1,22 +1,5 @@
 import type { Schema, Struct } from '@strapi/strapi';
 
-export interface CommonDatosFacturacion extends Struct.ComponentSchema {
-  collectionName: 'components_common_datos_facturacions';
-  info: {
-    displayName: 'DatosFacturacion';
-  };
-  attributes: {
-    cif: Schema.Attribute.String & Schema.Attribute.Required;
-    cpEmpresa: Schema.Attribute.String & Schema.Attribute.Required;
-    direccionEmpresa: Schema.Attribute.String & Schema.Attribute.Required;
-    emailEmpresa: Schema.Attribute.Email & Schema.Attribute.Required;
-    localidadEmpresa: Schema.Attribute.String & Schema.Attribute.Required;
-    nombreEmpresa: Schema.Attribute.String & Schema.Attribute.Required;
-    provinciaEmpresa: Schema.Attribute.String & Schema.Attribute.Required;
-    telefonoEmpresa: Schema.Attribute.String & Schema.Attribute.Required;
-  };
-}
-
 export interface SharedMedia extends Struct.ComponentSchema {
   collectionName: 'components_shared_media';
   info: {
@@ -82,7 +65,6 @@ export interface SharedSlider extends Struct.ComponentSchema {
 declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
-      'common.datos-facturacion': CommonDatosFacturacion;
       'shared.media': SharedMedia;
       'shared.quote': SharedQuote;
       'shared.rich-text': SharedRichText;

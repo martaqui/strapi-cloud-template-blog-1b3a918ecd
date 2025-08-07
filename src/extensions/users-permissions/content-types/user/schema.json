@@ -90,6 +90,12 @@
       "type": "string",
       "required": true
     },
+    "pedidos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::pedido.pedido",
+      "mappedBy": "usuario"
+    },
     "direccionEmpresa": {
       "type": "string",
       "required": true

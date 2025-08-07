@@ -1,0 +1,22 @@
+{
+  "kind": "collectionType",
+  "collectionName": "pedidos",
+  "info": {
+    "singularName": "pedido",
+    "pluralName": "pedidos",
+    "displayName": "Pedido Simple"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "que_compro": {
+      "type": "text",
+      "required": true
+    },
+    "cuanto_pago": {
+      "type": "decimal",
+      "required": true
+    }
+  }
+}
