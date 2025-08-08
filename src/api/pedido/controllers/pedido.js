@@ -15,11 +15,153 @@ module.exports = createCoreController("api::pedido.pedido", ({ strapi }) => ({
       return ctx.unauthorized("Usuario no autenticado");
     }
 
-    // Asignar el usuario al pedido
-    ctx.request.body.data.user = user.id;
+    // Generar número de pedido único
+    const fecha = new Date();
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, "0");
+    const day = String(fecha.getDate()).padStart(2, "0");
+
+    // Contar pedidos del día para generar número secuencial
+    const pedidosHoy = await strapi.entityService.findMany(
+      "api::pedido.pedido",
+      {
+        filters: {
+          fecha_pedido: {
+            $gte: new Date(
+              year,
+              fecha.getMonth(),
+              fecha.getDate()
+            ).toISOString(),
+            $lt: new Date(
+              year,
+              fecha.getMonth(),
+              fecha.getDate() + 1
+            ).toISOString(),
+          },
+        },
+      }
+    );
+
+    const numeroSecuencial = String(pedidosHoy.length + 1).padStart(3, "0");
+    const numeroPedido = `ORD-${year}${month}${day}-${numeroSecuencial}`;
+
+    // Preparar datos del pedido
+    const pedidoData = {
+      ...ctx.request.body.data,
+      numero_pedido: numeroPedido,
+      user: user.id,
+      fecha_pedido: fecha.toISOString(),
+      estado: "pendiente",
+      historial_estados: [
+        {
+          estado: "pendiente",
+          fecha: fecha.toISOString(),
+          comentario: "Pedido recibido",
+        },
+      ],
+    };
+
+    // Calcular totales si no se proporcionan
+    if (pedidoData.casos && !pedidoData.total) {
+      const subtotal = pedidoData.casos.reduce(
+        (sum, caso) => sum + (caso.subtotal || 0),
+        0
+      );
+      pedidoData.subtotal = subtotal;
+      pedidoData.total = subtotal - (pedidoData.descuento || 0);
+    }
+
+    // Asignar los datos al contexto
+    ctx.request.body.data = pedidoData;
 
     // Llamar al método create original
     const response = await super.create(ctx);
+
+    return response;
+  },
+
+  async find(ctx) {
+    // Si el usuario está autenticado, filtrar por sus pedidos
+    const user = ctx.state.user;
+
+    if (user) {
+      // Crear un nuevo objeto de filtros
+      const filters = ctx.query.filters ? { ...ctx.query.filters } : {};
+      filters.user = user.id;
+      ctx.query.filters = filters;
+    }
+
+    // Ordenar por fecha de pedido (más recientes primero)
+    if (!ctx.query.sort) {
+      ctx.query.sort = "fecha_pedido:desc";
+    }
+
+    // Llamar al método find original
+    const response = await super.find(ctx);
+
+    return response;
+  },
+
+  async findOne(ctx) {
+    // Verificar que el usuario solo pueda ver sus propios pedidos
+    const user = ctx.state.user;
+
+    if (user) {
+      const filters = ctx.query.filters ? { ...ctx.query.filters } : {};
+      filters.user = user.id;
+      ctx.query.filters = filters;
+    }
+
+    // Llamar al método findOne original
+    const response = await super.findOne(ctx);
+
+    return response;
+  },
+
+  async update(ctx) {
+    // Solo permitir actualizar el estado y notas
+    const user = ctx.state.user;
+
+    if (!user) {
+      return ctx.unauthorized("Usuario no autenticado");
+    }
+
+    // Verificar que el pedido pertenece al usuario
+    const pedidoId = ctx.params.id;
+    const pedido = await strapi.entityService.findOne(
+      "api::pedido.pedido",
+      pedidoId
+    );
+
+    if (!pedido || pedido.user.id !== user.id) {
+      return ctx.forbidden("No tienes permisos para modificar este pedido");
+    }
+
+    // Solo permitir actualizar ciertos campos
+    const allowedFields = ["estado", "notas"];
+    const updateData = {};
+
+    allowedFields.forEach((field) => {
+      if (ctx.request.body.data[field] !== undefined) {
+        updateData[field] = ctx.request.body.data[field];
+      }
+    });
+
+    // Si se actualiza el estado, agregar al historial
+    if (updateData.estado && updateData.estado !== pedido.estado) {
+      const historialActual = pedido.historial_estados || [];
+      historialActual.push({
+        estado: updateData.estado,
+        fecha: new Date().toISOString(),
+        comentario: `Estado cambiado a ${updateData.estado}`,
+      });
+      updateData.historial_estados = historialActual;
+    }
+
+    ctx.request.body.data = updateData;
+
+    // Llamar al método update original
+    const response = await super.update(ctx);
 
     return response;
   },

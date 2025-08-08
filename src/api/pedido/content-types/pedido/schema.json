@@ -4,19 +4,54 @@
   "info": {
     "singularName": "pedido",
     "pluralName": "pedidos",
-    "displayName": "Pedido Simple"
+    "displayName": "Pedido",
+    "description": "Sistema de pedidos completo con estados y casos múltiples"
   },
   "options": {
     "draftAndPublish": false
   },
   "attributes": {
-    "que_compro": {
-      "type": "text",
+    "numero_pedido": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "estado": {
+      "type": "enumeration",
+      "enum": ["pendiente", "en_proceso", "completado", "cancelado"],
+      "default": "pendiente",
       "required": true
     },
-    "cuanto_pago": {
+    "fecha_pedido": {
+      "type": "datetime",
+      "required": true
+    },
+    "metodo_pago": {
+      "type": "string",
+      "required": true
+    },
+    "casos": {
+      "type": "json",
+      "required": true
+    },
+    "subtotal": {
       "type": "decimal",
       "required": true
+    },
+    "descuento": {
+      "type": "decimal",
+      "default": 0
+    },
+    "total": {
+      "type": "decimal",
+      "required": true
+    },
+    "notas": {
+      "type": "text"
+    },
+    "historial_estados": {
+      "type": "json",
+      "default": []
     },
     "user": {
       "type": "relation",
