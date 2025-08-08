@@ -94,7 +94,7 @@
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::pedido.pedido",
-      "mappedBy": "usuario"
+      "mappedBy": "user"
     },
     "direccionEmpresa": {
       "type": "string",
