@@ -105,36 +105,49 @@ module.exports = createCoreController("api::pedido.pedido", ({ strapi }) => ({
     return response;
   },
 
+  // VERSIÓN TEMPORAL SIMPLIFICADA PARA DIAGNÓSTICO
   async findOne(ctx) {
+    console.log("🔍 findOne llamado con ID:", ctx.params.id);
+    console.log("🔍 Usuario autenticado:", ctx.state.user?.id);
+
     // Verificar autenticación
     const user = ctx.state.user;
-
     if (!user) {
+      console.log("❌ Usuario no autenticado");
       return ctx.unauthorized("Usuario no autenticado");
     }
 
     try {
-      // Asegurar que se populen las relaciones
-      if (!ctx.query.populate) {
-        ctx.query.populate = ["user"];
+      // Usar directamente entityService para diagnosticar
+      const pedido = await strapi.entityService.findOne(
+        "api::pedido.pedido",
+        ctx.params.id,
+        {
+          populate: ["user"],
+        }
+      );
+
+      console.log("🔍 Pedido encontrado:", pedido ? "SÍ" : "NO");
+      if (pedido) {
+        console.log("🔍 Pedido user ID:", pedido.user?.id);
+        console.log("🔍 Usuario autenticado ID:", user.id);
       }
 
-      // Llamar al método findOne original
-      const response = await super.findOne(ctx);
-
-      // Verificar que se encontró el pedido
-      if (!response || !response.data) {
+      if (!pedido) {
+        console.log("❌ Pedido no encontrado en entityService");
         return ctx.notFound("Pedido no encontrado");
       }
 
       // Verificar que el pedido pertenece al usuario
-      if (response.data.user && response.data.user.id !== user.id) {
+      if (pedido.user && pedido.user.id !== user.id) {
+        console.log("❌ Pedido no pertenece al usuario");
         return ctx.forbidden("No tienes permisos para ver este pedido");
       }
 
-      return response;
+      console.log("✅ Pedido encontrado y autorizado");
+      return { data: pedido };
     } catch (error) {
-      console.error("Error en findOne:", error);
+      console.error("❌ Error en findOne:", error);
       return ctx.notFound("Pedido no encontrado");
     }
   },
