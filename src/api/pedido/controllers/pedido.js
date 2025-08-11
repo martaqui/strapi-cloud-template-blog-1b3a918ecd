@@ -106,31 +106,24 @@ module.exports = createCoreController("api::pedido.pedido", ({ strapi }) => ({
   },
 
   async findOne(ctx) {
-    // Obtener el pedido sin filtrar por usuario primero
-    const pedidoId = ctx.params.id;
+    // Verificar autenticación
     const user = ctx.state.user;
 
     if (!user) {
       return ctx.unauthorized("Usuario no autenticado");
     }
 
-    // Buscar el pedido específico
-    const pedido = await strapi.entityService.findOne(
-      "api::pedido.pedido",
-      pedidoId
-    );
+    // Llamar al método findOne original sin filtros adicionales
+    const response = await super.findOne(ctx);
 
-    if (!pedido) {
-      return ctx.notFound("Pedido no encontrado");
-    }
-
-    // Verificar que el pedido pertenece al usuario
-    if (pedido.user && pedido.user.id !== user.id) {
+    // Verificar que el pedido pertenece al usuario después de obtenerlo
+    if (
+      response.data &&
+      response.data.user &&
+      response.data.user.id !== user.id
+    ) {
       return ctx.forbidden("No tienes permisos para ver este pedido");
     }
-
-    // Llamar al método findOne original
-    const response = await super.findOne(ctx);
 
     return response;
   },
