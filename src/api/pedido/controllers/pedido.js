@@ -86,7 +86,10 @@ module.exports = createCoreController("api::pedido.pedido", ({ strapi }) => ({
 
     if (user) {
       // Crear un nuevo objeto de filtros
-      const filters = ctx.query.filters ? { ...ctx.query.filters } : {};
+      const filters =
+        ctx.query.filters && typeof ctx.query.filters === "object"
+          ? { ...ctx.query.filters }
+          : {};
       filters.user = user.id;
       ctx.query.filters = filters;
     }
@@ -103,13 +106,27 @@ module.exports = createCoreController("api::pedido.pedido", ({ strapi }) => ({
   },
 
   async findOne(ctx) {
-    // Verificar que el usuario solo pueda ver sus propios pedidos
+    // Obtener el pedido sin filtrar por usuario primero
+    const pedidoId = ctx.params.id;
     const user = ctx.state.user;
 
-    if (user) {
-      const filters = ctx.query.filters ? { ...ctx.query.filters } : {};
-      filters.user = user.id;
-      ctx.query.filters = filters;
+    if (!user) {
+      return ctx.unauthorized("Usuario no autenticado");
+    }
+
+    // Buscar el pedido específico
+    const pedido = await strapi.entityService.findOne(
+      "api::pedido.pedido",
+      pedidoId
+    );
+
+    if (!pedido) {
+      return ctx.notFound("Pedido no encontrado");
+    }
+
+    // Verificar que el pedido pertenece al usuario
+    if (pedido.user && pedido.user.id !== user.id) {
+      return ctx.forbidden("No tienes permisos para ver este pedido");
     }
 
     // Llamar al método findOne original
@@ -133,7 +150,7 @@ module.exports = createCoreController("api::pedido.pedido", ({ strapi }) => ({
       pedidoId
     );
 
-    if (!pedido || pedido.user.id !== user.id) {
+    if (!pedido || (pedido.user && pedido.user.id !== user.id)) {
       return ctx.forbidden("No tienes permisos para modificar este pedido");
     }
 
@@ -149,7 +166,9 @@ module.exports = createCoreController("api::pedido.pedido", ({ strapi }) => ({
 
     // Si se actualiza el estado, agregar al historial
     if (updateData.estado && updateData.estado !== pedido.estado) {
-      const historialActual = pedido.historial_estados || [];
+      const historialActual = Array.isArray(pedido.historial_estados)
+        ? pedido.historial_estados
+        : [];
       historialActual.push({
         estado: updateData.estado,
         fecha: new Date().toISOString(),

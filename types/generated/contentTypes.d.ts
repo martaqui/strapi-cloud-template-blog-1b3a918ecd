@@ -541,7 +541,8 @@ export interface ApiGlobalGlobal extends Struct.SingleTypeSchema {
 export interface ApiPedidoPedido extends Struct.CollectionTypeSchema {
   collectionName: 'pedidos';
   info: {
-    displayName: 'Pedido Simple';
+    description: 'Sistema de pedidos completo con estados y casos m\u00FAltiples';
+    displayName: 'Pedido';
     pluralName: 'pedidos';
     singularName: 'pedido';
   };
@@ -549,21 +550,39 @@ export interface ApiPedidoPedido extends Struct.CollectionTypeSchema {
     draftAndPublish: false;
   };
   attributes: {
+    casos: Schema.Attribute.JSON & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    cuanto_pago: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    descuento: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
+    estado: Schema.Attribute.Enumeration<
+      ['pendiente', 'en_proceso', 'completado', 'cancelado']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'pendiente'>;
+    fecha_pedido: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    historial_estados: Schema.Attribute.JSON & Schema.Attribute.DefaultTo<[]>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::pedido.pedido'
     > &
       Schema.Attribute.Private;
+    metodo_pago: Schema.Attribute.String & Schema.Attribute.Required;
+    notas: Schema.Attribute.Text;
+    numero_pedido: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     publishedAt: Schema.Attribute.DateTime;
-    que_compro: Schema.Attribute.Text & Schema.Attribute.Required;
+    subtotal: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    total: Schema.Attribute.Decimal & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::users-permissions.user'
+    >;
   };
 }
 
