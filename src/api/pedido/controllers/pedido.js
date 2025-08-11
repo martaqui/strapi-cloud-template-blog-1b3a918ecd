@@ -114,7 +114,12 @@ module.exports = createCoreController("api::pedido.pedido", ({ strapi }) => ({
     }
 
     try {
-      // Llamar al método findOne original sin filtros adicionales
+      // Asegurar que se populen las relaciones
+      if (!ctx.query.populate) {
+        ctx.query.populate = ["user"];
+      }
+
+      // Llamar al método findOne original
       const response = await super.findOne(ctx);
 
       // Verificar que se encontró el pedido
