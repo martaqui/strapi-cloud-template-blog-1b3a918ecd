@@ -113,19 +113,25 @@ module.exports = createCoreController("api::pedido.pedido", ({ strapi }) => ({
       return ctx.unauthorized("Usuario no autenticado");
     }
 
-    // Llamar al método findOne original sin filtros adicionales
-    const response = await super.findOne(ctx);
+    try {
+      // Llamar al método findOne original sin filtros adicionales
+      const response = await super.findOne(ctx);
 
-    // Verificar que el pedido pertenece al usuario después de obtenerlo
-    if (
-      response.data &&
-      response.data.user &&
-      response.data.user.id !== user.id
-    ) {
-      return ctx.forbidden("No tienes permisos para ver este pedido");
+      // Verificar que se encontró el pedido
+      if (!response || !response.data) {
+        return ctx.notFound("Pedido no encontrado");
+      }
+
+      // Verificar que el pedido pertenece al usuario
+      if (response.data.user && response.data.user.id !== user.id) {
+        return ctx.forbidden("No tienes permisos para ver este pedido");
+      }
+
+      return response;
+    } catch (error) {
+      console.error("Error en findOne:", error);
+      return ctx.notFound("Pedido no encontrado");
     }
-
-    return response;
   },
 
   async update(ctx) {
